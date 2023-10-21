@@ -1,0 +1,34 @@
+from pyspark.sql import SparkSession
+from pyspark.sql import functions as func
+from pyspark.sql.types import StructType, StructField, IntegerType, StringType
+
+spark = SparkSession.builder.appName("MostPopularSuperhero").getOrCreate()
+
+schema = StructType([ \
+                     StructField("id", IntegerType(), True), \
+                     StructField("name", StringType(), True)])
+
+names = spark.read.schema(schema).option("sep", " ").csv("file:///SparkCourse/Marvel-names.txt")
+
+lines = spark.read.text("file:///SparkCourse/Marvel-graph.txt")
+
+# Small tweak vs. what's shown in the video: we trim each line of whitespace as that could
+# throw off the counts.
+connections = lines.withColumn("id", func.split(func.trim(func.col("value")), " ")[0]) \
+    .withColumn("connections", func.size(func.split(func.trim(func.col("value")), " ")) - 1) \
+    .groupBy("id").agg(func.sum("connections").alias("connections"))
+    
+mostPopular = connections.sort(func.col("connections").desc()).first()
+
+mostPopularName = names.filter(func.col("id") == mostPopular[0]).select("name").first()
+
+print(mostPopularName[0] + " is the most popular superhero with " + str(mostPopular[1]) + " co-appearances.")
+
+
+
+df = spark.createDataFrame([([1, 2, 3], {"key1": "value1", "key2": "value2"})], ["array_column", "map_column"])
+
+df = df.withColumn("array_length", F.size("array_column"))
+df = df.withColumn("map_length", F.size("map_column"))
+
+df.show()
