@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS spectrum.employee_salaries_staging;
